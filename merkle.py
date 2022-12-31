@@ -6,6 +6,69 @@ import hashlib
 import math
 import base64
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+
+
+# 5
+def get_rsa_keys():
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+        backend=default_backend()
+    )
+    public_key = private_key.public_key()
+
+    private_bytes = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+
+    public_bytes = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+
+    print(private_bytes.decode('UTF-8'))
+    print(public_bytes.decode('UTF-8'))
+
+
+# 6
+def sign(private_key: bytes, merkle_root_value: bytes):
+    # initialize RSAPrivateKey Object to use sign method
+    private_key = serialization.load_pem_private_key(data=private_key, password=None)
+    return private_key.sign(
+        merkle_root_value,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+
+
+# 7
+def verify(public_key: bytes, signature: bytes, message: bytes):
+    public_key = serialization.load_pem_public_key(data=public_key)
+    try:
+        public_key.verify(
+            signature,
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except InvalidSignature as e:
+        return False
+
 
 def calculate_hash(leaf):
     return hashlib.sha256(leaf).hexdigest()
@@ -25,7 +88,7 @@ def closest_power_of_2(list_len):
     return power2
 
 
-class leaves(object):
+class Leaves(object):
     def __init__(self):
         self.leaves_list: list = []
 
@@ -111,7 +174,6 @@ class MerkleTree(object):
                 else:
                     return False
 
-
         # Check if the current node has the str_to_find as a value
         # The last node is a string and not a MerkleTree object
         hash_to_find = calculate_hash(str_to_find.encode('utf-8'))
@@ -122,7 +184,7 @@ class MerkleTree(object):
 
 
 def main():
-    l = leaves()
+    l = Leaves()
     root = MerkleTree()
     l.add_leaf("a")
     l.add_leaf("b")
