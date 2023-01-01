@@ -127,7 +127,7 @@ class MerkleTree(object):
             return False
         else:
             return True
-
+    #5
     @staticmethod
     def generate_keys():
         private_key = rsa.generate_private_key(
