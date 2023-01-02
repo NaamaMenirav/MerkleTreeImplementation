@@ -32,7 +32,7 @@ def closest_power_of_2(list_len):
     return power2
 
 
-class leaves(object):
+class Leaves(object):
     def __init__(self):
         self.leaves_list: list = []
 
@@ -67,7 +67,8 @@ class MerkleTree(object):
         self.right.construct_tree(leaves[power_of_2 // 2:])
         self.value = concat(self.left.value, self.right.value)
 
-    def display_root(self):
+    def display_root(self, leaves: list):
+        self.construct_tree(leaves)
         return self.value
 
     def proof_of_inclusion(self, number: int, leaves: list):
@@ -94,6 +95,7 @@ class MerkleTree(object):
             self.left.proof_of_inclusion_rec(number, closest_power_of_2(len_leaves) // 2)
             print("1" + self.right.value)
 
+    # 4
     def check_proof_of_inclusion(self, str_to_find, inclusion_proof_3):
         inclusion_proof_3_list = inclusion_proof_3.split("\n")
         if self.value != inclusion_proof_3_list[0]:
@@ -125,8 +127,9 @@ class MerkleTree(object):
             return False
         else:
             return True
-
-    def generate_keys(self):
+    #5
+    @staticmethod
+    def generate_keys():
         private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048,
@@ -150,6 +153,7 @@ class MerkleTree(object):
         # print(public_pem.decode('utf-8'))
         return private_pem.decode('utf-8'), public_pem.decode('utf-8')
 
+    # 6
     def sign_root(self, private_key_string):
         root = self.value.encode('utf-8')
         private_key = serialization.load_pem_private_key(private_key_string.encode('utf-8'), password=None)
@@ -161,9 +165,12 @@ class MerkleTree(object):
                                      hashes.SHA256())
 
         signature = base64.urlsafe_b64encode(signature).decode('utf-8')
+        print(signature)
         return signature
 
-    def verify_signature(self, public_key_string, signature, text):
+    # 7
+    @staticmethod
+    def verify_signature(public_key_string, signature, text):
         print('here')
         public_key = serialization.load_pem_public_key(public_key_string.encode('utf-8'), backend=None)
         signature = signature.encode('utf-8')
@@ -185,20 +192,108 @@ class MerkleTree(object):
             return False
 
 
+def handle_ex1(command_param_list: str, leaves: Leaves):
+    leaves.add_leaf(command_param_list)
+
+
+def handle_ex2(merkle_tree: MerkleTree, leaves: Leaves):
+    """
+    handles ex2 - displaying root hash value
+    :param first_param:
+    :param merkle_tree:
+    :param leaves:
+    """
+    merkle_tree.display_root(leaves.get_leaves())
+
+
+def handle_ex3(merkle_tree: MerkleTree, number: str, leaves: Leaves):
+    if number.isnumeric() and int(number) < len(leaves.get_leaves()):
+        merkle_tree.proof_of_inclusion(int(number), leaves.get_leaves())
+    else:
+        print("")
+
+
+def handle_ex4(merkle_tree: MerkleTree, str_to_find: str, proof: str):
+    merkle_tree.check_proof_of_inclusion(str_to_find, proof)
+
+
+def handle_ex5(merkle_tree: MerkleTree):
+    print(merkle_tree.generate_keys())
+
+
+def handle_ex6(merkle_tree: MerkleTree, private_key : str):
+    if "-----BEGIN RSA PRIVATE KEY-----" not in private_key or "-----END RSA PRIVATE KEY-----" not in private_key:
+        print("")
+        return
+    else:
+        merkle_tree.sign_root(private_key)
+
+
+def handle_ex7():
+    pass
+
+
+def input_handler(merkle_tree, leaves):
+    """
+    infinite loop iterating over users input
+    command type and params are separated by space
+    params are separated by newline
+    """
+    # input takes user entered input until newline
+    # command consists of command type + first param
+    command = input()  # "command_type first_param"
+    command_param_list = command.split(" ")
+    # there are no params for the command
+    command_type = command_param_list[0]
+    root = None
+    while True:
+        try:
+            if command_type == "1":
+                if len(command_param_list) == 2:
+                    handle_ex1(command_param_list[1], leaves)
+                else:
+                    print("")
+            elif command_type == "2":
+                if len(command_param_list) == 1:
+                    handle_ex2(merkle_tree, leaves)
+                else:
+                    print("")
+            elif command_type == "3":
+                if len(command_param_list) == 2:
+                    handle_ex3(merkle_tree, command_param_list[1], leaves)
+                else:
+                    print("")
+            elif command_type == "4":
+                if len(command_param_list) == 3:
+                    handle_ex3(merkle_tree, command_param_list[1], command_param_list[2])
+                else:
+                    print("")
+            elif command_type == "5":
+                if len(command_param_list) == 1:
+                    handle_ex5(merkle_tree)
+                else:
+                    print("")
+            elif command_type == "6":
+                handle_ex6(command[2:])
+            elif command_type == "7":
+                print(command.split("\\n\\n"))
+
+        except Exception as ex:
+            continue
+
+
 def main():
-    l = leaves()
+    l = Leaves()
     root = MerkleTree()
     l.add_leaf("a")
-    l.add_leaf("b")
-    l.add_leaf("c")
     root.construct_tree(l.get_leaves())
 
     # print(root.display_root())
     # print(root.proof_of_inclusion(0, l.get_leaves()))
     # print(root.proof_of_inclusion(2, l.get_leaves()))
-    #     print(root.check_proof_of_inclusion("a", """d71dc32fa2cd95be60b32dbb3e63009fa8064407ee19f457c92a09a5ff841a8a
-    # 13e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d
-    # 12e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"""))
+    print(root.check_proof_of_inclusion("a", """d71dc32fa2cd95be60b32dbb3e63009fa8064407ee19f457c92a09a5ff841a8a
+13e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d
+12e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"""))
     #     print(root.check_proof_of_inclusion("b", """d71dc32fa2cd95be60b32dbb3e63009fa8064407ee19f457c92a09a5ff841a8a
     # 13e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d
     # 12e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"""))
@@ -259,9 +354,15 @@ wRZtbqz9mAekKYDell44Pj21xKsFFy4PgpnxrXFNppPOA3ZpQk245bYPIdzYpcmq0
 FyYx5RQQCQYBV69QrQOAvvkVVkwZbiqI0/+tZWmfNdV/x6E3PWYljSccMLW/m4
 nhcy+XQ39Q2oxIzYlobwndW3epxEReLzP7qeN9BR/BVew2yCn4quhm1fA7544mp
 ZaW0VynQDRHBy7gqJDhuWRLjKOcQ=="""
+    print(root.generate_keys().decode("utf-8"))
     hash_root = "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bc"
+    sign_root_output = root.sign_root(private_key_input)
+    print("---------------------------------------")
+    print(sign_root_output)
+    print("---------------------------------------")
 
-    print(root.verify_signature(public_key_input, signature_base64, hash_root))
+
+# print(root.verify_signature(public_key_input, signature_base64, hash_root))
 
 
 if __name__ == '__main__':
