@@ -99,7 +99,8 @@ class MerkleTree(object):
     def check_proof_of_inclusion(self, str_to_find, inclusion_proof_3):
         inclusion_proof_3_list = inclusion_proof_3.split("\n")
         if self.value != inclusion_proof_3_list[0]:
-            return False
+            print("False")
+            return
         curr_node = self
         for i in range(len(inclusion_proof_3_list) - 1, 0, -1):
             curr_compare = (inclusion_proof_3_list[i])[1:]
@@ -110,7 +111,8 @@ class MerkleTree(object):
                 elif curr_node.right == curr_compare:
                     curr_node = curr_node.left
                 else:
-                    return False
+                    print("False")
+                    return
             # Pass over all the nodes until the father of the leaves
             else:
                 if curr_node.left.value == curr_compare:
@@ -118,15 +120,18 @@ class MerkleTree(object):
                 elif curr_node.right.value == curr_compare:
                     curr_node = curr_node.left
                 else:
-                    return False
+                    print("False")
+                    return
 
         # Check if the current node has the str_to_find as a value
         # The last node is a string and not a MerkleTree object
         hash_to_find = calculate_hash(str_to_find.encode('utf-8'))
         if curr_node != hash_to_find:
-            return False
+            print("False")
+            return
         else:
-            return True
+            Print("True")
+            return
     #5
     @staticmethod
     def generate_keys():
