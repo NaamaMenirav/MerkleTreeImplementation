@@ -3,7 +3,6 @@
 # ID:
 
 import hashlib
-import math
 import base64
 
 from cryptography.exceptions import InvalidSignature
@@ -69,7 +68,7 @@ class MerkleTree(object):
 
     def display_root(self, leaves: list):
         self.construct_tree(leaves)
-        return self.value
+        print(self.value)
 
     def proof_of_inclusion(self, number: int, leaves: list):
         self.construct_tree(leaves)
@@ -97,42 +96,61 @@ class MerkleTree(object):
 
     # 4
     def check_proof_of_inclusion(self, str_to_find, inclusion_proof_3):
+        """
+        This function checks if the proof of inclusion is correct with a specific leaf
+        :param str_to_find: The string of the leaf
+        :param inclusion_proof_3: String containing the proof of inclusion
+        :return: nothing
+        """
+        # Split the string of the inclusion proof to an array
         inclusion_proof_3_list = inclusion_proof_3.split("\n")
+        # If the value of the root doesn't match the string in the array - the proof is wrong
         if self.value != inclusion_proof_3_list[0]:
             print("False")
             return
+
+        # Pass every string in the proof and verify if there is a node with the same value
         curr_node = self
         for i in range(len(inclusion_proof_3_list) - 1, 0, -1):
+            # By the first character the direction of the son determined
+            direction = (inclusion_proof_3_list[i])[0]
             curr_compare = (inclusion_proof_3_list[i])[1:]
             # The father of the wanted value
             if i == 1:
-                if curr_node.left == curr_compare:
+                # Compare the right son
+                if direction == "1" and curr_node.left == curr_compare:
                     curr_node = curr_node.right
-                elif curr_node.right == curr_compare:
+                # Compare the lest son
+                elif direction == "0" and curr_node.right == curr_compare:
                     curr_node = curr_node.left
+                # If none of them aligning - the proof is wrong
                 else:
                     print("False")
                     return
             # Pass over all the nodes until the father of the leaves
             else:
-                if curr_node.left.value == curr_compare:
+                # Compare the right son
+                if direction == "1" and curr_node.left.value == curr_compare:
                     curr_node = curr_node.right
-                elif curr_node.right.value == curr_compare:
+                # Compare the left son
+                elif direction == "0" and curr_node.right.value == curr_compare:
                     curr_node = curr_node.left
+                # If none of them aligning - the proof is wrong
                 else:
                     print("False")
                     return
 
-        # Check if the current node has the str_to_find as a value
-        # The last node is a string and not a MerkleTree object
+        # Check if the current node (which is a leaf) has the str_to_find as a value
+        # The last node is a string and isn't a MerkleTree object
+        # The string is stored in the leaf after it has been hashed
         hash_to_find = calculate_hash(str_to_find.encode('utf-8'))
         if curr_node != hash_to_find:
             print("False")
             return
         else:
-            Print("True")
+            print("True")
             return
-    #5
+    # 5
     @staticmethod
     def generate_keys():
         private_key = rsa.generate_private_key(
@@ -154,14 +172,22 @@ class MerkleTree(object):
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
 
-        # print(private_pem.decode('utf-8'))
-        # print(public_pem.decode('utf-8'))
-        return private_pem.decode('utf-8'), public_pem.decode('utf-8')
+        print(private_pem.decode('utf-8'))
+        print(public_pem.decode('utf-8'))
+        # return private_pem.decode('utf-8'), public_pem.decode('utf-8')
 
     # 6
     def sign_root(self, private_key_string):
+        """
+        This function signs with a RSA private key on the root node of a Merkle Tree
+        :param private_key_string: The string of the private key
+        :return: nothing
+        """
+        # The value of the root node
         root = self.value.encode('utf-8')
+        # Convert the string of the private key to an actual private key
         private_key = serialization.load_pem_private_key(private_key_string.encode('utf-8'), password=None)
+        # Sign the root with the private key
         signature = private_key.sign(root,
                                      padding.PSS(
                                          mgf=padding.MGF1(hashes.SHA256()),
@@ -169,20 +195,26 @@ class MerkleTree(object):
                                      ),
                                      hashes.SHA256())
 
+        # Encode signature with base 64 encoder and bytes encoder
         signature = base64.urlsafe_b64encode(signature).decode('utf-8')
+
         print(signature)
-        return signature
 
     # 7
     @staticmethod
     def verify_signature(public_key_string, signature, text):
-        print('here')
+        """
+        This function verifies the signature of a given text and a public key
+        :param public_key_string: string of a public key
+        :param signature: the signature that need to be verified
+        :param text: the text which was signed by a private key
+        :return: nothing
+        """
+        # Convert the string of the public key to an actual public key
         public_key = serialization.load_pem_public_key(public_key_string.encode('utf-8'), backend=None)
-        signature = signature.encode('utf-8')
-        print(signature)
-        signature = base64.b64decode(signature)
-        print(signature)
-
+        # Decode signature with base 64 encoder and bytes encoder
+        signature = bytes(base64.b64decode(signature))
+        # Try to verify the signature
         try:
             public_key.verify(signature,
                               text.encode('utf-8'),
@@ -192,9 +224,10 @@ class MerkleTree(object):
                               ),
                               hashes.SHA256()
                               )
-            return True
+            print("True")
+        # The verification failed
         except InvalidSignature as e:
-            return False
+            print("False")
 
 
 def handle_ex1(command_param_list: str, leaves: Leaves):
@@ -223,10 +256,10 @@ def handle_ex4(merkle_tree: MerkleTree, str_to_find: str, proof: str):
 
 
 def handle_ex5(merkle_tree: MerkleTree):
-    print(merkle_tree.generate_keys())
+    merkle_tree.generate_keys()
 
 
-def handle_ex6(merkle_tree: MerkleTree, private_key : str):
+def handle_ex6(merkle_tree: MerkleTree, private_key: str):
     if "-----BEGIN RSA PRIVATE KEY-----" not in private_key or "-----END RSA PRIVATE KEY-----" not in private_key:
         print("")
         return
@@ -234,8 +267,12 @@ def handle_ex6(merkle_tree: MerkleTree, private_key : str):
         merkle_tree.sign_root(private_key)
 
 
-def handle_ex7():
-    pass
+def handle_ex7(merkle_tree: MerkleTree, public_key_string: str, signature: str, text: str):
+    if "-----BEGIN RSA PUBLIC KEY-----" not in public_key_string or "-----END RSA PUBLIC KEY-----" not in public_key_string:
+        print("")
+        return
+    else:
+        merkle_tree.verify_signature(public_key_string, signature, text)
 
 
 def input_handler(merkle_tree, leaves):
@@ -293,16 +330,20 @@ def main():
     l.add_leaf("a")
     root.construct_tree(l.get_leaves())
 
-    # print(root.display_root())
+
+    # handle_ex5(root)
+
     # print(root.proof_of_inclusion(0, l.get_leaves()))
     # print(root.proof_of_inclusion(2, l.get_leaves()))
-    print(root.check_proof_of_inclusion("a", """d71dc32fa2cd95be60b32dbb3e63009fa8064407ee19f457c92a09a5ff841a8a
-13e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d
-12e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"""))
-    #     print(root.check_proof_of_inclusion("b", """d71dc32fa2cd95be60b32dbb3e63009fa8064407ee19f457c92a09a5ff841a8a
-    # 13e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d
-    # 12e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"""))
+
+    #print(root.check_proof_of_inclusion("a", """d71dc32fa2cd95be60b32dbb3e63009fa8064407ee19f457c92a09a5ff841a8a
+#13e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d
+#12e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"""))
+#    print(root.check_proof_of_inclusion("b", """d71dc32fa2cd95be60b32dbb3e63009fa8064407ee19f457c92a09a5ff841a8a
+ #   13e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d
+  #  12e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"""))
     #     print(root.generate_keys())
+
     private_key_input = """-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEA1MAmLr5TwN8OnQF9OjfWGyGuHfl5056u7XBjYcsidkQHVLk
 K
@@ -339,35 +380,26 @@ iz4rEwKBgBxxJ6t4F8APkYkXaY5EB/Z6EtJJDbKgoqBkfWuVZ0DzPBmVKUbP6EKM
 T085EM/HlQer1QQjfkdepVuCL7mdDjKcxVMiuMKPWtVlsJjtJMa11smmdqZ5UT/w
 6R54/knAIkDXNlGE2xBXCcfKdhF2+lICi5COWEQk5NASSVdgfKjN
 -----END RSA PRIVATE KEY-----"""
-    # print(root.sign_root(private_key_input))
+    root.sign_root(private_key_input)
     public_key_input = """-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1MAmLr5TwN8OnQF9Oj
-fW
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1MAmLr5TwN8OnQF9OjfW
 GyGuHfl5056u7XBjYcsidkQHVLkK8NhFzSvBnQbi18PcXVSLusLPVnGs6a9rfN9N
-kCM6uSom0+lpFgMWuD/7w0HPIW7Cw0hVlFNWvZ8vv5uzA/mzpF8S1fRmCMkfQ
-yP4
-TDJ2MImQxcdkWDpFDq1pmvRJweavzUnc2eUmuz4bwLYwv3CBKDlCSdIAFCkVP6
-PJ
-l8cbZkOPqbVPMW+MLf+pZrKfWczCxCnzHmLbzngClQp+4meAtGOGgKKwsmS1eA
-0B
+kCM6uSom0+lpFgMWuD/7w0HPIW7Cw0hVlFNWvZ8vv5uzA/mzpF8S1fRmCMkfQyP4
+TDJ2MImQxcdkWDpFDq1pmvRJweavzUnc2eUmuz4bwLYwv3CBKDlCSdIAFCkVP6PJ
+l8cbZkOPqbVPMW+MLf+pZrKfWczCxCnzHmLbzngClQp+4meAtGOGgKKwsmS1eA0B
 AYfao0g+cu1ESU5ePea/jrX0nJONvDOAeh00keQvxE1xoEnKppbKT2F6RTyBITbC
 mwIDAQAB
 -----END PUBLIC KEY-----"""
-    signature_base64 = """LhnptHJUc4M0GVZR+wbp5NC6owLwH2+N/UpOKV6jnyH8iA8YoVSQkMU63z8QZ
-yr50L1f4hTWSxZbjzeQ1Rm/1OyAyX9QdQHIrMWRjOx0GPfqPi4wmcmF9ZxPr7Sh
-wRZtbqz9mAekKYDell44Pj21xKsFFy4PgpnxrXFNppPOA3ZpQk245bYPIdzYpcmq0
-FyYx5RQQCQYBV69QrQOAvvkVVkwZbiqI0/+tZWmfNdV/x6E3PWYljSccMLW/m4
-nhcy+XQ39Q2oxIzYlobwndW3epxEReLzP7qeN9BR/BVew2yCn4quhm1fA7544mp
-ZaW0VynQDRHBy7gqJDhuWRLjKOcQ=="""
-    print(root.generate_keys().decode("utf-8"))
-    hash_root = "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bc"
-    sign_root_output = root.sign_root(private_key_input)
-    print("---------------------------------------")
-    print(sign_root_output)
-    print("---------------------------------------")
+    #signature_base64 = "ukoTJiII2tj6VP2PaPc9BeVFRo8swKFNyl2Wz2afUkiaJN_X1pgI9aYuSARxwRhQ_P8UbPJLHUOkCfwonIlFFxFC0jKLIgdtr5kUFRvxVtrLJthumQtnJ-ehybLllIeR_T_YSMpYsjwPGrvKTBmx5f0XQo2RuDT9IIAPhbgrWf63G7tytRx9nPRFEYnySuH3j0Wqg6q2yLnjodFvSkYcIaL-vPEPrxbWH-7h11xkCz3rB0geoz1k9vWXn8jM527knx_L67dVlXipginQyWg6PhjAq5HhuvFy02E84XF1tCJkHtw91VxLx3VDAnwSGSMZy2TMUpolSRd3QBYD3PKPtQ=="
+    signature_base64 = "LhnptHJUc4M0GVZR+wbp5NC6owLwH2+N/UpOKV6jnyH8iA8YoVSQkMU63z8QZyr50L1f4hTWSxZbjzeQ1Rm/1OyAyX9QdQHIrMWRjOx0GPfqPi4wmcmF9ZxPr7ShwRZtbqz9mAekKYDell44Pj21xKsFFy4PgpnxrXFNppPOA3ZpQk245bYPIdzYpcmq0FyYx5RQQCQYBV69QrQOAvvkVVkwZbiqI0/+tZWmfNdV/x6E3PWYljSccMLW/m4nhcy+XQ39Q2oxIzYlobwndW3epxEReLzP7qeN9BR/BVew2yCn4quhm1fA7544mpZaW0VynQDRHBy7gqJDhuWRLjKOcQ== ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+#     print(root.generate_keys().decode("utf-8"))
+    hash_root = "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
 
 
-# print(root.verify_signature(public_key_input, signature_base64, hash_root))
+    handle_ex2(root, l)
+    root.verify_signature(public_key_input, signature_base64, hash_root)
+    # handle_ex6(root, private_key_input)
+
 
 
 if __name__ == '__main__':
