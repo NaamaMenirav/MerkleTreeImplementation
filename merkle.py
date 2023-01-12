@@ -1,6 +1,7 @@
-# Task2
-# Names:
-# ID:
+# Credit
+# Name: Gali
+# Name: Naama Menirav
+
 
 import hashlib
 import base64
@@ -140,7 +141,7 @@ class MerkleTree(object):
         self.construct_tree(leaves)
         len_leaves = len(leaves)
         # Prints the value of the root before the proof itself
-        print(self.value)
+        print(self.value, end=" ")
         self.proof_of_inclusion_rec(number, len_leaves)
 
     def proof_of_inclusion_rec(self, number: int, len_leaves: int):
@@ -153,10 +154,10 @@ class MerkleTree(object):
         # If we want the right value we return the left and vise verse, stopping point
         if len_leaves == 2:
             if number == 1:
-                print("0" + self.left)
+                print("0" + self.left, end=" ")
             else:
                 if self.right:
-                    print("1" + self.right)
+                    print("1" + self.right, end=" ")
             return
         # If we have only one child, we don't do anything, stopping point
         if len_leaves == 1:
@@ -165,11 +166,11 @@ class MerkleTree(object):
         if number >= closest_power_of_2(len_leaves) // 2:
             self.right.proof_of_inclusion_rec(number - closest_power_of_2(len_leaves) // 2,
                                               len_leaves - closest_power_of_2(len_leaves) // 2)
-            print("0" + self.left.value)
+            print("0" + self.left.value, end=" ")
         # If the number is in the left side of the tree
         else:
             self.left.proof_of_inclusion_rec(number, closest_power_of_2(len_leaves) // 2)
-            print("1" + self.right.value)
+            print("1" + self.right.value, end=" ")
 
     # 4
     def check_proof_of_inclusion(self, str_to_find, inclusion_proof_3):
@@ -180,8 +181,6 @@ class MerkleTree(object):
         :return: none
         """
         # Split the string of the inclusion proof to an array
-        print("here")
-        print(inclusion_proof_3)
         inclusion_proof_3_list = inclusion_proof_3.split(" ")
         # If the value of the root doesn't match the string in the array - the proof is wrong
         if self.value != inclusion_proof_3_list[0]:
@@ -191,17 +190,17 @@ class MerkleTree(object):
         # Pass every string in the proof and verify if there is a node with the same value
         curr_node = self
         # for i in range(len(inclusion_proof_3_list) - 1, 0, -1):
-        for i in range(1, len(inclusion_proof_3_list)):
+        for i in range(len(inclusion_proof_3_list) - 1, 0, -1):
             # By the first character the direction of the child determined
             direction = (inclusion_proof_3_list[i])[0]
             curr_compare = (inclusion_proof_3_list[i])[1:]
             # The father of the wanted value
             if i == 1:
                 # Compare the right son
-                if direction == "1" and curr_node.left == curr_compare:
+                if direction == "0" and curr_node.left == curr_compare:
                     curr_node = curr_node.right
                 # Compare the lest son
-                elif direction == "0" and curr_node.right == curr_compare:
+                elif direction == "1" and curr_node.right == curr_compare:
                     curr_node = curr_node.left
                 # If none of them aligning - the proof is wrong
                 else:
@@ -210,10 +209,10 @@ class MerkleTree(object):
             # Pass over all the nodes until the father of the leaves
             else:
                 # Compare the right son
-                if direction == "1" and curr_node.left.value == curr_compare:
+                if direction == "0" and curr_node.left.value == curr_compare:
                     curr_node = curr_node.right
                 # Compare the left son
-                elif direction == "0" and curr_node.right.value == curr_compare:
+                elif direction == "1" and curr_node.right.value == curr_compare:
                     curr_node = curr_node.left
                 # If none of them aligning - the proof is wrong
                 else:
@@ -230,6 +229,7 @@ class MerkleTree(object):
         else:
             print("True")
             return
+
     # 5
     @staticmethod
     def generate_keys():
@@ -347,8 +347,7 @@ def handle_ex3(merkle_tree: MerkleTree, number: str, leaves: Leaves):
     """
     if number.isnumeric() and int(number) < len(leaves.get_leaves()):
         merkle_tree.proof_of_inclusion(int(number), leaves.get_leaves())
-    else:
-        print("")
+    print("")
 
 
 def handle_ex4(merkle_tree: MerkleTree, str_to_find: str, proof: str):
@@ -394,7 +393,7 @@ def handle_ex7(merkle_tree: MerkleTree, public_key_string: str, signature: str, 
     :param text: value of the wanted leaf
     :return: none
     """
-    if "-----BEGIN RSA PUBLIC KEY-----" not in public_key_string or "-----END RSA PUBLIC KEY-----" not in public_key_string:
+    if "-----BEGIN PUBLIC KEY-----" not in public_key_string or "-----END PUBLIC KEY-----" not in public_key_string:
         print("")
         return
     else:
@@ -435,13 +434,11 @@ def input_handler(merkle_tree, leaves):
                 if command_param_list is None:
                     print(" ")
                 else:
-                    print("command 4")
                     proof = ""
                     for i in range(2, len(command_param_list)):
                         proof += command_param_list[i]
-                        if i != len(command_param_list)-1:
+                        if i != len(command_param_list) - 1:
                             proof += " "
-                    print(proof)
 
                     handle_ex4(merkle_tree, command_param_list[1], proof)
 
@@ -451,12 +448,28 @@ def input_handler(merkle_tree, leaves):
                 else:
                     print("")
             elif command_type == "6":
-                handle_ex6(command[2:])
+                private_key = command[2:] + '\n'
+                line = command
+                while line != "-----END RSA PRIVATE KEY-----":
+                    line = input()
+                    private_key += line+'\n'
+                handle_ex6(merkle_tree, private_key)
             elif command_type == "7":
-                print(command.split("\\n\\n"))
+                public_key = command[2:] + '\n'
+                line = command
+                while line != "-----END PUBLIC KEY-----":
+                    line = input()
+                    public_key += line + '\n'
+
+                enter = input()
+                command2 = input()
+                command2_param_list = command2.split(" ")
+                signature = command2_param_list[0]
+                text = command2_param_list[1]
+                handle_ex7(merkle_tree, public_key, signature, text)
 
         except Exception as ex:
-            continue
+            print(ex)
 
         command = input()  # "command_type first_param"
         command_param_list = command.split(" ")
